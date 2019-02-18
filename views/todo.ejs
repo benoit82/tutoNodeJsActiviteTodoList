@@ -11,18 +11,48 @@
     <body>
         <h1>Ma todolist</h1>
 
-        <ul>
-        <% todolist.forEach(function(todo, index) { %>
-            <li><a href="/todo/supprimer/<%= index %>">✘</a> <%= todo %></li>
-        <% }); %>
+        <ul id="list">
         </ul>
 
-        <form action="/todo/ajouter/" method="post">
+        <form action="">
             <p>
                 <label for="newtodo">Que dois-je faire ?</label>
                 <input type="text" name="newtodo" id="newtodo" autofocus />
-                <input type="submit" />
+                <input type="submit" id="btnSubmit" />
             </p>
         </form>
     </body>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://localhost:8080');
+
+        // lorsque l'on actionne le submit:
+        var btnSubmit = document.getElementById('btnSubmit');
+        btnSubmit.addEventListener('click', event => {
+            event.preventDefault();
+            // on emet la tache au server
+            socket.emit('nouvelle_tache', document.getElementById('newtodo').value);
+        });
+
+        // lorsqu'on veux supprimer une tache, on emet l'evenement suppr_tache
+        var supprTache = (index) => {
+            socket.emit('suppr_tache', index);
+        }
+        // reception des nouvelles taches
+        socket.on('load_todolist', (todolist) => {
+            // reset de la list
+            var list = document.getElementById('list');
+            while (list.firstChild) {
+                list.removeChild(list.firstChild);
+            }
+
+            // on peuple la liste par la nouvelle reçu via socket.io
+            todolist.forEach((tache, index) => {
+                newli = document.createElement('li');
+                newli.innerHTML += '<a href="javascript:supprTache('+ index +')">✘</a>' + todolist[index];
+                list.appendChild(newli);
+            });
+        });
+
+    </script>
 </html>

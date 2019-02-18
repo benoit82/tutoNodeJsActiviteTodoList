@@ -1,48 +1,35 @@
-var express = require('express');
-var session = require('cookie-session'); // Charge le middleware de sessions
-var bodyParser = require('body-parser'); // Charge le middleware de gestion des paramètres
-var urlencodedParser = bodyParser.urlencoded({ extended: false });
+var app = require('express')();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+//sauvegarde de la todolist & initialisation
+var todolist = [];
 
-var app = express();
+server.listen(8080);
 
-
-/* On utilise les sessions */
-app.use(session({secret: 'todotopsecret'}))
-
-
-/* S'il n'y a pas de todolist dans la session,
-on en crée une vide sous forme d'array avant la suite */
-.use(function(req, res, next){
-    if (typeof(req.session.todolist) == 'undefined') {
-        req.session.todolist = [];
-    }
-    next();
-})
 
 /* On affiche la todolist et le formulaire */
-.get('/todo', function(req, res) { 
-    res.render('todo.ejs', {todolist: req.session.todolist});
+    app.get('/', function(req, res) { 
+    res.render('todo.ejs', {todolist: todolist});
 })
 
-/* On ajoute un élément à la todolist */
-.post('/todo/ajouter/', urlencodedParser, function(req, res) {
-    if (req.body.newtodo != '') {
-        req.session.todolist.push(req.body.newtodo);
-    }
-    res.redirect('/todo');
-})
 
-/* Supprime un élément de la todolist */
-.get('/todo/supprimer/:id', function(req, res) {
-    if (req.params.id != '') {
-        req.session.todolist.splice(req.params.id, 1);
-    }
-    res.redirect('/todo');
-})
+// utilisation de socket.io
+io.sockets.on('connection', (socket) => {
+    //sur connection, on renvoie la todolist en état sur tous les clients
+    socket.emit('load_todolist', todolist);
+    socket.broadcast.emit('load_todolist', todolist);
 
-/* On redirige vers la todolist si la page demandée n'est pas trouvée */
-.use(function(req, res, next){
-    res.redirect('/todo');
-})
+    //si on reçoit une nouvelle tache on l'ajoute et on emet la nouvelle liste à jour
+    socket.on('nouvelle_tache', (tache) => {
+        todolist.push(tache);
+        socket.emit('load_todolist', todolist);
+        socket.broadcast.emit('load_todolist', todolist);
+    });
 
-.listen(8080);   
+    //si on supprime une tache
+    socket.on('suppr_tache', (index) => {
+        todolist.splice(index, 1);
+        socket.emit('load_todolist', todolist);
+        socket.broadcast.emit('load_todolist', todolist);
+    });
+})
