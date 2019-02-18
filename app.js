@@ -16,20 +16,22 @@ server.listen(8080);
 // utilisation de socket.io
 io.sockets.on('connection', (socket) => {
     //sur connection, on renvoie la todolist en état sur tous les clients
-    socket.emit('load_todolist', todolist);
-    socket.broadcast.emit('load_todolist', todolist);
-
+    // on stock la fonction dans une variable réutilisable
+    var reload = () => {
+        socket.emit('load_todolist', todolist);
+        socket.broadcast.emit('load_todolist', todolist);
+    };
+    reload();
+    
     //si on reçoit une nouvelle tache on l'ajoute et on emet la nouvelle liste à jour
     socket.on('nouvelle_tache', (tache) => {
         todolist.push(tache);
-        socket.emit('load_todolist', todolist);
-        socket.broadcast.emit('load_todolist', todolist);
+        reload();
     });
 
     //si on supprime une tache
     socket.on('suppr_tache', (index) => {
         todolist.splice(index, 1);
-        socket.emit('load_todolist', todolist);
-        socket.broadcast.emit('load_todolist', todolist);
+        reload();
     });
 })
