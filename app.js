@@ -18,8 +18,7 @@ io.sockets.on('connection', (socket) => {
     //sur connection, on renvoie la todolist en état sur tous les clients
     // on stock la fonction dans une variable réutilisable
     var reload = () => {
-        socket.emit('load_todolist', todolist);
-        socket.broadcast.emit('load_todolist', todolist);
+        io.sockets.emit('load_todolist', todolist);
     };
     reload();
     
